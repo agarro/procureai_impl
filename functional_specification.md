@@ -13,76 +13,78 @@ Basado en la interfaz y los flujos de trabajo, se identifican los siguientes per
 
 ## 3. Listado de Funcionalidades Principales
 
-1.  **Dashboard Ejecutivo de Compras**:
-    *   Visualización de métricas clave en tiempo real: Ahorros generados por IA, Nivel de riesgo de proveedores, Excepciones activas y Tasa de automatización de Órdenes de Compra (OC).
-    *   Gráfico de dispersión para analizar la relación entre la "Agilidad del Agente" y el "Score de Transparencia".
-    *   Guía interactiva de interpretación de métricas.
+### 1. Dashboard Ejecutivo de Compras
+*   **Métricas Clave (KPIs)**:
+    *   **Ahorros IA (YTD)**: Ahorros acumulados por negociaciones autónomas.
+    *   **Riesgo Proveedores**: Nivel de riesgo integral de la base activa.
+    *   **Excepciones Activas**: Eventos que requieren intervención humana.
+    *   **Tasa OC Auto**: Porcentaje de órdenes de compra "touchless".
+    *   **Sitios VMI Activos**: Cantidad de inventarios gestionados por proveedores.
+*   **Visualización de Datos**:
+    *   **Agilidad vs. Transparencia**: Análisis de tiempos de respuesta vs. score de confianza.
+    *   **Curva de Ahorros IA**: Evolución temporal de los ahorros generados.
+*   **Guía de Interpretación**: Micro-ayuda integrada para entender el cálculo de cada métrica.
 
-2.  **Gestión de Eventos de Sourcing**:
-    *   Creación de nuevos eventos con soporte para múltiples tipos de procesos:
-        *   **Compra Spot**: Para necesidades inmediatas y puntuales.
-        *   **Licitación (RFP)**: Para procesos formales y competitivos.
-        *   **Sourcing Estratégico**: Para desarrollo de categorías a largo plazo.
-        *   **Contrato Marco**: Para acuerdos de suministro recurrentes.
-    *   Formularios dinámicos que adaptan los campos requeridos según el tipo de proceso seleccionado.
-    *   Soporte multimoneda (USD y ARS) con conversión automática de valores.
+### 2. Gestión de Eventos de Sourcing
+*   **Creación de Eventos**: Soporte para Compra Spot, Licitación (RFP), Sourcing Estratégico y Contrato Marco.
+*   **Configuración Dinámica**: Campos adaptativos según el tipo de proceso y soporte multimoneda (USD/ARS).
+*   **Simulación de Orquestación**:
+    *   Log de chat interactivo entre agentes (Orquestador, ERP, Sourcing, Riesgo, Legal).
+    *   Visualización del "Proceso de Pensamiento" de la IA.
+    *   Generación de tablas comparativas y cuadros de adjudicación sugeridos.
+*   **Generación de Documentos**: Creación automática de Órdenes de Compra (OC) en PDF.
 
-3.  **Simulación de Orquestación de Agentes (Sourcing Event)**:
-    *   Interfaz de chat tipo "Log de Orquestación" que muestra la interacción entre distintos agentes especializados (Orquestador, ERP, Sourcing, Riesgo, Legal).
-    *   Visualización del "Proceso de Pensamiento" de la IA para transparencia en la toma de decisiones.
-    *   Generación dinámica de tablas de datos durante la conversación (ej. validación de stock, comparativas de ofertas, rondas de negociación).
-    *   Control de flujo paso a paso (Validación -> Riesgo -> Negociación -> Adjudicación).
+### 3. Planificación MRP y Demanda (Nuevos Módulos)
+*   **Demand Planning**: Predicción de necesidades futuras basada en IA.
+*   **MRP Control Tower**: Gestión de excepciones en la cadena de suministro y rupturas de stock.
+*   **Scenario Planner**: Simulación de diversos escenarios operativos ("What-if") para mitigar riesgos.
 
-4.  **Generación de Documentos**:
-    *   Creación y descarga automática de Órdenes de Compra (OC) en formato PDF al finalizar un evento exitoso.
+### 4. Gestión de Contratos (CLM) y Catálogo
+*   **Catálogo MRO**: Centralización de repuestos y materiales de mantenimiento.
+*   **CLM con IA**: 
+    *   Redacción automática de borradores de contratos.
+    *   Cálculo de **Riesgo IA** (0-100%) analizando ambigüedad, cumplimiento legal y financiero.
 
-5.  **Backoffice y Configuración**:
-    *   **Conexiones**: Gestión del estado de integración con sistemas ERP (SAP, Oracle) y redes de proveedores (Ariba, Coupa).
-    *   **Fuentes de Conocimiento**: Activación de fuentes de datos externas para el motor de IA (ej. Bloomberg, SharePoint).
-    *   **Motor de Riesgos**: Sliders para ajustar la ponderación de factores de riesgo (Proveedores vs. Mercado).
-    *   **Tipos de Cambio**: Configuración de tasas de conversión manuales o automáticas para la normalización de moneda.
+### 5. Automatización de Cuentas por Pagar (AP)
+*   **Three-Way Matching**: Conciliación automática entre Orden de Compra (PO), Recepción de Mercancías (GR) y Factura.
+*   **Match Score**: Porcentaje de coincidencia inteligente para aprobación automatizada o desvío a excepciones.
+
+### 6. Análisis de Gastos (Spend Analysis) e Información de Auditoría
+*   **Spend Analysis**: Análisis visual de la distribución del gasto corporativo.
+*   **Consola de Auditoría**:
+    *   Monitoreo en tiempo real de trazas del sistema (pensamientos de IA, transacciones, acciones de usuario).
+    *   Exportación de logs formateados para cumplimiento y auditoría externa.
+
+### 7. Backoffice y Configuración Avanzada
+*   **Conexiones ERP**: Integración con SAP, Oracle y otros sistemas mediante API.
+*   **Redes de Proveedores**: Gestión de portales (Ariba, Coupa).
+*   **Motor de Riesgos y RAG**: Ajuste de ponderaciones de riesgo y activación de fuentes de conocimiento (Bloomberg, SharePoint).
+*   **Normalización Monetaria**: Configuración de tipos de cambio (Mercado, MEP, Blue, Custom).
+*   **Sincronización de Master Data**: Actualización bidireccional de parámetros logísticos con el ERP.
 
 ## 4. Flujos de Usuario (User Journeys)
 
 ### Flujo A: Creación y Ejecución de un Evento de Compra
-1.  **Inicio**: El usuario accede al Dashboard y selecciona "Crear Nuevo Evento" o navega desde la barra lateral.
-2.  **Configuración del Evento**:
-    *   El usuario define el título y selecciona la moneda (USD/ARS).
-    *   Selecciona el tipo de proceso (ej. "Compra Spot").
-    *   El sistema despliega los campos específicos (Volumen, Categoría, Precio Objetivo).
-    *   El usuario completa la información y confirma la creación.
-3.  **Orquestación (Simulación)**:
-    *   El sistema redirige a la vista del evento en estado "Iniciado".
-    *   **Paso 1 (Validación)**: El usuario inicia el flujo. El agente "ERP" verifica stock y valida la necesidad.
-    *   **Paso 2 (Riesgo y Ofertas)**: El agente de "Sourcing" contacta proveedores y presenta un cuadro comparativo. El agente de "Riesgo" evalúa a los candidatos.
-    *   **Paso 3 (Negociación)**: El sistema simula rondas de negociación, mostrando ofertas iniciales, contraofertas y el precio final acordado.
-    *   **Paso 4 (Cierre)**: El agente "Legal" valida cumplimiento y el agente "ERP" genera la Orden de Compra.
-4.  **Finalización**: El usuario visualiza el resumen de ahorros y descarga el PDF de la Orden de Compra.
+1.  **Inicio**: Acceso al Dashboard -> Crear Nuevo Evento.
+2.  **Configuración**: Definición de título, moneda y tipo de proceso.
+3.  **Orquestación**: Inicio de la simulación donde los agentes validan stock, evalúan proveedores y negocian precios.
+4.  **Cierre**: Adjudicación final, validación legal y descarga del PDF de la OC.
 
-### Flujo B: Configuración de Parámetros de Negocio
-1.  **Acceso**: El usuario navega a la sección "Backoffice".
-2.  **Gestión de Integraciones**: Revisa el estado de conexión de los sistemas ERP. Puede ver detalles de última sincronización.
-3.  **Ajuste de Riesgos**: Accede a la pestaña "Ponderación de Riesgos". Mueve los controles deslizantes para dar más peso al "Riesgo Financiero" o "Riesgo Geopolítico" según la estrategia actual.
-4.  **Guardado**: Confirma los cambios para que afecten a los futuros cálculos de los agentes.
+### Flujo B: Conciliación de Facturas (AP)
+1.  **Ingreso**: Navegación al módulo de Cuentas por Pagar.
+2.  **Ejecución**: Uso de "Auto-Match" para procesar facturas pendientes.
+3.  **Resolución**: Validación de facturas con 100% de coincidencia y revisión manual de excepciones detectadas.
+
+### Flujo C: Auditoría y Trazabilidad
+1.  **Monitoreo**: Acceso a la Consola de Auditoría para visualizar la lógica detrás de una decisión de la IA.
+2.  **Exportación**: Descarga de logs para soporte o revisiones de cumplimiento.
 
 ## 5. Reglas de Negocio
 
-1.  **Validación de Campos por Tipo de Proceso**:
-    *   Para **Compra Spot**, es obligatorio definir Volumen y Categoría.
-    *   Para **Licitaciones**, se requieren los Requerimientos del Servicio.
-    *   Para **Contratos Marco**, son mandatorios la Duración del Contrato y el Fee Mensual.
+1.  **Validación Dinámica**: Campos mandatorios cambian según el tipo de evento (ej. Fee Mensual solo en Contrato Marco).
+2.  **Conversión Global**: Todas las métricas del Dashboard se normalizan a la moneda de preferencia usando el tipo de cambio configurado en Backoffice.
+3.  **Seguridad y Auditoría**: Cada decisión de un agente debe quedar registrada en el log de auditoría con su respectivo "contexto de pensamiento".
+4.  **Flujo de Aprobación**: El sistema sugiere adjudicaciones, pero bloquea el cierre si el riesgo integral supera los umbrales configurados sin supervisión.
 
-2.  **Manejo de Moneda**:
-    *   El sistema debe permitir la visualización y operación en múltiples monedas (USD, ARS).
-    *   Al cambiar la moneda de un evento, los valores monetarios (precios objetivo, ofertas) deben recalcularse utilizando la tasa de cambio configurada en el contexto global.
-
-3.  **Flujo Secuencial de Estados**:
-    *   Un evento no puede pasar a "Completado" sin haber atravesado exitosamente las fases de Validación, Análisis de Riesgo y Negociación.
-    *   La generación de la Orden de Compra (OC) solo se habilita una vez que se ha seleccionado un proveedor final y validado legalmente.
-
-4.  **Criterios de Adjudicación**:
-    *   El sistema sugiere automáticamente al proveedor con el mejor puntaje integral (Score), que combina precio, tiempos de entrega y evaluación de riesgo.
-    *   Un proveedor con riesgo "Alto" es alertado, aunque la decisión final puede ser supervisada.
-
-5.  **Integridad de Datos en Simulación**:
-    *   Los logs del chat y las tablas generadas deben persistir durante la sesión para permitir la auditoría del proceso de pensamiento de los agentes.
+## 6. Componentes Globales
+*   **AI Chat Assistant**: Asistente persistente disponible en todas las vistas para consultas sobre el estado del sistema, métricas o ayuda operativa.

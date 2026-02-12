@@ -1,21 +1,46 @@
-import React, { useState } from 'react';
-import { Database, Server, Globe, CheckCircle, XCircle, RefreshCw, Save, Plus, Sliders, DollarSign } from 'lucide-react';
-import { IntegrationConfig, RiskFactor } from '../types';
-import { INITIAL_RISK_FACTORS } from '../services/mockData';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { Database, Server, Globe, CheckCircle, XCircle, RefreshCw, Save, Plus, Sliders, DollarSign, Settings, Users, Shield, Activity, AlertCircle } from 'lucide-react';
+import { IntegrationConfig, RiskFactor, MasterDataUpdate } from '../types';
+import { INITIAL_RISK_FACTORS, INTEGRATION_CONFIG, MOCK_MASTER_DATA_UPDATES } from '../services/mockData';
 import { useExchangeRate } from '../context/ExchangeRateContext';
 
-const INITIAL_INTEGRATIONS: IntegrationConfig[] = [
-  { id: '1', name: 'SAP S/4HANA', type: 'ERP', status: 'conectado', lastSync: 'hace 2 min', details: 'Inventario, Módulos Finanzas' },
-  { id: '2', name: 'Oracle NetSuite', type: 'ERP', status: 'desconectado', lastSync: 'hace 4 días', details: 'Libro Mayor Respaldo' },
-  { id: '3', name: 'Red Ariba', type: 'Proveedor', status: 'conectado', lastSync: 'hace 10 min', details: 'Portal de Proveedores' },
-  { id: '4', name: 'Coupa', type: 'Proveedor', status: 'conectado', lastSync: 'hace 1 hora', details: 'Gestión de Facturas' },
-];
+
+import { useAudit } from '../context/AuditContext';
 
 export const Backoffice: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'erp' | 'suppliers' | 'sources' | 'risk-weights' | 'exchange-rates'>('erp');
-  const [integrations, setIntegrations] = useState(INITIAL_INTEGRATIONS);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get('tab') || 'erp';
+  const setActiveTab = (tab: string) => setSearchParams({ tab });
+  const { addLog } = useAudit();
+
+  const [integrations, setIntegrations] = useState(INTEGRATION_CONFIG);
   const [riskFactors, setRiskFactors] = useState<RiskFactor[]>(INITIAL_RISK_FACTORS);
   const { rates, selectedRateType, setSelectedRateType, customRateValue, setCustomRateValue, refreshRates } = useExchangeRate();
+  const [config, setConfig] = useState(INTEGRATION_CONFIG);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [masterDataUpdates, setMasterDataUpdates] = useState<MasterDataUpdate[]>(MOCK_MASTER_DATA_UPDATES);
+
+  const handleSyncMasterData = () => {
+    setIsSyncing(true);
+    addLog({
+      type: 'USER_ACTION',
+      module: 'Backoffice',
+      message: 'Initialing Manual Master Data Sync',
+      details: { timestamp: new Date().toISOString() }
+    });
+
+    setTimeout(() => {
+      alert('Sincronización de Datos Maestros con SAP MM completada.');
+      setIsSyncing(false);
+      addLog({
+        type: 'SYSTEM',
+        module: 'Backoffice',
+        message: 'Master Data Sync Completed Successfully',
+        details: { recordsUpdated: 4, source: 'SAP MM' }
+      });
+    }, 2000);
+  };
 
   const handleWeightChange = (id: string, newWeight: number) => {
     setRiskFactors(prev => prev.map(rf =>
@@ -31,7 +56,7 @@ export const Backoffice: React.FC = () => {
 
   const TabButton: React.FC<{ id: string, label: string, icon: React.ReactNode }> = ({ id, label, icon }) => (
     <button
-      onClick={() => setActiveTab(id as any)}
+      onClick={() => setActiveTab(id)}
       className={`flex items-center px-6 py-3 border-b-2 font-medium text-sm transition-colors ${activeTab === id ? 'border-procure-600 text-procure-700 bg-procure-50' : 'border-transparent text-gray-500 hover:text-gray-700'
         }`}
     >
@@ -48,12 +73,13 @@ export const Backoffice: React.FC = () => {
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="flex border-b border-gray-200">
+        <div className="flex border-b border-gray-200 overflow-x-auto">
           <TabButton id="erp" label="Conexiones ERP" icon={<Database className="w-4 h-4" />} />
           <TabButton id="suppliers" label="Redes de Proveedores" icon={<Server className="w-4 h-4" />} />
           <TabButton id="sources" label="Fuentes de Conocimiento (RAG)" icon={<Globe className="w-4 h-4" />} />
           <TabButton id="risk-weights" label="Ponderación de Riesgos" icon={<Sliders className="w-4 h-4" />} />
           <TabButton id="exchange-rates" label="Tipo de Cambio" icon={<DollarSign className="w-4 h-4" />} />
+          <TabButton id="masterdata" label="Master Data Sync" icon={<RefreshCw className="w-4 h-4" />} />
         </div>
 
         <div className="p-6">
@@ -297,8 +323,85 @@ export const Backoffice: React.FC = () => {
               </div>
             </div>
           )}
+          {activeTab === 'masterdata' && (
+            <div>
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Sincronización de Datos Maestros</h2>
+                  <p className="text-gray-500 text-sm mt-1">Actualización bidireccional de parámetros logísticos con ERP.</p>
+                </div>
+                <button
+                  onClick={handleSyncMasterData}
+                  disabled={isSyncing}
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center transition-colors disabled:opacity-70"
+                >
+                  <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+                  {isSyncing ? 'Sincronizando...' : 'Forzar Sincronización'}
+                </button>
+              </div>
+
+              <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Material</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Anterior</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Nuevo</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {MOCK_MASTER_DATA_UPDATES.map((update) => (
+                      <tr key={update.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{update.materialName}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{update.field}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-400 line-through">{update.oldValue}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{update.newValue}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{update.timestamp}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${update.status === 'Synced' ? 'bg-green-100 text-green-800' :
+                            update.status === 'Pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                            {update.status === 'Synced' && <CheckCircle className="w-3 h-3 mr-1" />}
+                            {update.status === 'Pending' && <Activity className="w-3 h-3 mr-1" />}
+                            {update.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
+
+      {activeTab === 'sources' && (
+        <div className="mt-8 p-6 bg-gray-50 rounded-xl border border-gray-200">
+          <div className="flex items-start">
+            <AlertCircle className="w-6 h-6 text-procure-600 mt-1 mr-4 flex-shrink-0" />
+            <div>
+              <h3 className="text-lg font-bold text-gray-900 mb-2">Sobre el Índice de Commodities Bloomberg</h3>
+              <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                "El Índice de Commodities Bloomberg (Bloomberg Commodity Index, BCOM) es un índice de referencia que mide el desempeño de un conjunto amplio y diversificado de contratos de futuros sobre materias primas (commodities) negociados en mercados internacionales.
+              </p>
+
+              <h4 className="font-bold text-gray-800 text-sm mt-4 mb-2">¿Qué es y para qué sirve?</h4>
+              <p className="text-gray-600 text-sm leading-relaxed mb-4">
+                El BCOM es un “benchmark” financiero diseñado para dar exposición líquida y diversificada al mercado de materias primas mediante futuros, no mediante posesión física de los productos. Se utiliza como referencia para fondos, ETFs y derivados, y también como termómetro general del ciclo de commodities (inflación de materias primas, shocks de oferta, etc.).
+              </p>
+
+              <h4 className="font-bold text-gray-800 text-sm mt-4 mb-2">Componentes y sectores</h4>
+              <p className="text-gray-600 text-sm leading-relaxed">
+                El índice está compuesto por futuros de alrededor de 23 commodities físicas agrupadas en seis grandes sectores: energía, metales preciosos, metales industriales, agricultura (granos y “softs”), y ganados."
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

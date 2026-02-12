@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, DollarSign, Tag, Layers, Send, ArrowLeft, ShoppingCart, FileText, Target, Briefcase } from 'lucide-react';
+import { Package, DollarSign, Tag, Layers, Send, ArrowLeft, ShoppingCart, FileText, Target, Briefcase, Wrench, TrendingUp, RefreshCw } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { SourcingEvent, Supplier, SourcingProcessType } from '../types';
 
@@ -22,7 +22,13 @@ export const NewEvent: React.FC = () => {
     contractDuration: '',
     monthlyFee: '',
     extraServicesRate: '',
-    currency: 'USD' as 'USD' | 'ARS'
+    currency: 'USD' as 'USD' | 'ARS',
+    developmentStage: 'Prototype' as 'Prototype' | 'Pilot' | 'Production',
+    vmiMinStock: '',
+    vmiMaxStock: '',
+    vmiLocation: '',
+    marketIndex: '',
+    hedgingStrategy: 'Spot' as 'Spot' | 'Forward' | 'Options'
   });
 
   const PROCESS_OPTIONS: { id: SourcingProcessType; label: string; description: string; icon: React.ReactNode }[] = [
@@ -30,6 +36,9 @@ export const NewEvent: React.FC = () => {
     { id: 'tender', label: 'Licitación (RFP)', description: 'Proceso formal competitivo para contratos de alto valor.', icon: <FileText className="w-6 h-6 text-purple-600" /> },
     { id: 'strategic', label: 'Sourcing Estratégico', description: 'Análisis profundo de mercado y desarrollo de proveedores.', icon: <Target className="w-6 h-6 text-red-600" /> },
     { id: 'framework', label: 'Contrato Marco', description: 'Negociación de términos para compras recurrentes.', icon: <Briefcase className="w-6 h-6 text-green-600" /> },
+    { id: 'NPI', label: 'NPI Sourcing', description: 'Abastecimiento para nuevos productos en desarrollo.', icon: <Wrench className="w-6 h-6 text-orange-600" /> },
+    { id: 'VMI', label: 'Acuerdo VMI', description: 'Inventario gestionado por el proveedor.', icon: <RefreshCw className="w-6 h-6 text-teal-600" /> },
+    { id: 'Commodity', label: 'Commodities', description: 'Compra de materias primas con cobertura.', icon: <TrendingUp className="w-6 h-6 text-yellow-600" /> },
   ];
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -74,7 +83,13 @@ export const NewEvent: React.FC = () => {
       steps: ['Validación Requisición', 'Análisis Riesgo', 'Sourcing Automatizado', 'Adjudicación & OC'],
 
       leads: generateMockLeads(targetPrice || 0),
-      currency: formData.currency
+      currency: formData.currency,
+      developmentStage: formData.processType === 'NPI' ? formData.developmentStage : undefined,
+      vmiMinStock: formData.processType === 'VMI' ? parseFloat(formData.vmiMinStock) : undefined,
+      vmiMaxStock: formData.processType === 'VMI' ? parseFloat(formData.vmiMaxStock) : undefined,
+      vmiLocation: formData.processType === 'VMI' ? formData.vmiLocation : undefined,
+      marketIndex: formData.processType === 'Commodity' ? formData.marketIndex : undefined,
+      hedgingStrategy: formData.processType === 'Commodity' ? formData.hedgingStrategy : undefined,
     };
 
     // Simular delay de red
@@ -353,6 +368,104 @@ export const NewEvent: React.FC = () => {
               </div>
             )}
 
+            {formData.processType === 'NPI' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Etapa de Desarrollo</label>
+                  <select
+                    name="developmentStage"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                    value={formData.developmentStage}
+                    onChange={handleChange}
+                  >
+                    <option value="Prototype">Prototipo</option>
+                    <option value="Pilot">Piloto</option>
+                    <option value="Production">Producción Masiva</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Especificaciones Técnicas (Planos/CAD)</label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-procure-500 transition-colors cursor-pointer">
+                    <Wrench className="mx-auto h-8 w-8 text-gray-400" />
+                    <p className="mt-2 text-sm text-gray-500">Arrastre archivos aquí o haga clic para subir</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {formData.processType === 'VMI' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock Mínimo</label>
+                    <input
+                      type="number"
+                      name="vmiMinStock"
+                      required
+                      placeholder="Ej: 100"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                      value={formData.vmiMinStock}
+                      onChange={handleChange}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Stock Máximo</label>
+                    <input
+                      type="number"
+                      name="vmiMaxStock"
+                      required
+                      placeholder="Ej: 500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                      value={formData.vmiMaxStock}
+                      onChange={handleChange}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Ubicación del Almacén</label>
+                  <input
+                    type="text"
+                    name="vmiLocation"
+                    required
+                    placeholder="Ej: Planta Pilar - Almacén B"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                    value={formData.vmiLocation}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            )}
+
+            {formData.processType === 'Commodity' && (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Índice de Mercado Referencia</label>
+                  <input
+                    type="text"
+                    name="marketIndex"
+                    required
+                    placeholder="Ej: LME Copper Grade A"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                    value={formData.marketIndex}
+                    onChange={handleChange}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Estrategia de Cobertura</label>
+                  <select
+                    name="hedgingStrategy"
+                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-procure-500 focus:border-procure-500 transition-colors"
+                    value={formData.hedgingStrategy}
+                    onChange={handleChange}
+                  >
+                    <option value="Spot">Spot (Sin Cobertura)</option>
+                    <option value="Forward">Contrato Forward</option>
+                    <option value="Options">Opciones (Call/Put)</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
             {/* Common Fields (Target Price & Unit) - Only for Spot, but maybe relevant for others? 
                 User request implies specific fields for each. 
                 Let's keep Target Price for Spot and maybe Tender/Strategic as 'Budget'. 
@@ -360,7 +473,7 @@ export const NewEvent: React.FC = () => {
                 Let's conditionally render Target Price too.
             */}
 
-            {(formData.processType === 'spot' || formData.processType === 'tender') && (
+            {(formData.processType === 'spot' || formData.processType === 'tender' || formData.processType === 'NPI' || formData.processType === 'Commodity') && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">

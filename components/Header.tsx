@@ -3,7 +3,7 @@ import { Bot, Bell, User } from 'lucide-react';
 
 export const Header: React.FC = () => {
   return (
-    <header className="h-16 bg-[rgb(0,55,125)] text-white flex items-center justify-between px-6 fixed top-0 left-0 w-full z-20 shadow-md">
+    <header className="h-16 bg-[rgb(0,55,125)] text-white flex items-center justify-between px-6 sticky top-0 w-full z-20 shadow-md flex-shrink-0">
       <div className="flex items-center">
         <div className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center mr-3">
           <Bot className="w-6 h-6 text-blue-200" />

@@ -1,16 +1,18 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { Play, CheckCheck, Download, Bot, Gavel, Database, AlertTriangle, Send, Monitor, Check } from 'lucide-react';
+import { Play, CheckCheck, Download, Bot, Gavel, Database, AlertTriangle, Send, Monitor, Check, Wrench } from 'lucide-react';
 import { useEvents } from '../context/EventContext';
 import { AgentMessage } from '../types';
 import { generatePurchaseOrderPDF } from '../services/pdfService';
 import { useExchangeRate } from '../context/ExchangeRateContext';
+import { useAudit } from '../context/AuditContext';
 
 export const SourcingEvent: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { events, updateEvent } = useEvents();
   const { convert, getCurrentRateValue } = useExchangeRate();
+  const { addLog } = useAudit();
 
   // Local state for simulation UI
   const [messages, setMessages] = useState<AgentMessage[]>([]);
@@ -69,6 +71,16 @@ export const SourcingEvent: React.FC = () => {
       switch (simulationStep) {
         case 0: // Step 1: Validation
           updateEvent(id, { currentStepIndex: 0, status: 'En Progreso' });
+          addLog({
+            type: 'AI_THOUGHT',
+            module: 'Orchestrator',
+            message: 'Starting Sourcing Validation Protocol',
+            details: {
+              eventId: id,
+              steps: ['Inventory Check', 'Demand Aggregation', 'Spec Validation'],
+              timestamp: new Date().toISOString()
+            }
+          });
           await addMessage({
             sender: 'procure',
             senderName: 'Orquestador',
@@ -83,6 +95,16 @@ export const SourcingEvent: React.FC = () => {
             text: `Recibido. Verificando niveles de stock en nodos de almacén...`,
             thinking: "Consultando API SAP S/4HANA (MM Module)... Verificando disponibilidad en almacenes regionales... Comprobando stock de seguridad y puntos de reorden..."
           }, 1500);
+
+          if (event.processType === 'NPI') {
+            await addMessage({
+              sender: 'risk', // Using risk icon/color for Engineering for now, or I could add a new sender type but let's reuse 'risk' or 'procure' with different name/icon
+              senderName: 'Ingeniería / I+D',
+              icon: 'wrench',
+              text: `Especificaciones técnicas validadas. Etapa: ${event.developmentStage}. Se requiere proveedor con capacidad de prototipado rápido.`,
+              thinking: "Revisando planos CAD adjuntos... Verificando tolerancias críticas... Filtrando proveedores con certificación ISO 13485 (si aplica)..."
+            }, 1500);
+          }
 
           const isService = event.category.includes('Servicio') || event.category.includes('MRO');
 
@@ -134,11 +156,37 @@ export const SourcingEvent: React.FC = () => {
               ]
             }
           }, 1500);
+
+          addLog({
+            type: 'TRANSACTION',
+            module: 'ERP Connector',
+            message: 'Inventory & Demand Data Retrieved',
+            details: {
+              source: 'SAP S/4HANA',
+              queryId: 'QRY-8829-MM',
+              results: {
+                centralWarehouse: { sku: '100-200', qty: 1200, status: 'CRITICAL' },
+                northPlant: { sku: '100-200', qty: 800, status: 'LOW' },
+                safetyStockTriggered: true,
+                totalDeficit: 3000
+              }
+            }
+          });
           setSimulationStep(1);
           break;
 
         case 1: // Step 2: Risk & Offers
           updateEvent(id, { currentStepIndex: 1 });
+          addLog({
+            type: 'AI_THOUGHT',
+            module: 'Sourcing Agent',
+            message: 'Generating Supplier Candidate List',
+            details: {
+              criteria: { category: event.category, minScore: 70, capacity: 'High' },
+              databaseHits: 12,
+              shortlisted: event.leads.length
+            }
+          });
           const bestSupplier = event.leads.reduce((prev, current) => (prev.score > current.score) ? prev : current);
 
           await addMessage({
@@ -168,9 +216,10 @@ export const SourcingEvent: React.FC = () => {
             thinking: "Procesando respuestas de proveedores... Normalizando términos comerciales y fechas de entrega... Calculando TCO (Total Cost of Ownership)...",
             tableData: {
               headers: isServiceStep2
-                ? ['Proveedor', 'Precio', 'Score', 'Riesgo']
-                : ['Proveedor', 'Precio', 'Entrega', 'Score', 'Riesgo'],
+                ? ['Proveedor', 'Precio', 'Score', 'Riesgo', 'ESG', 'Calidad']
+                : ['Proveedor', 'Precio', 'Entrega', 'Score', 'Riesgo', 'ESG', 'Calidad'],
               rows: offers.map(o => {
+                const lead = event.leads.find(l => l.name === o.name);
                 const commonRow = [
                   o.name,
                   `$${o.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -187,6 +236,12 @@ export const SourcingEvent: React.FC = () => {
                     }`}>{o.risk}</span>
                 );
 
+                // Add ESG and Quality
+                commonRow.push(
+                  lead?.esgScore ? <span className={lead.esgScore > 80 ? 'text-green-600 font-bold' : 'text-gray-600'}>{lead.esgScore}</span> : '-',
+                  lead?.qualityScore ? <span className={lead.qualityScore > 90 ? 'text-green-600 font-bold' : 'text-gray-600'}>{lead.qualityScore}</span> : '-'
+                );
+
                 return commonRow;
               })
             }
@@ -199,6 +254,27 @@ export const SourcingEvent: React.FC = () => {
             text: `Análisis Completo. ${bestSupplier.name} (Score: ${bestSupplier.score}) identificado como la mejor opción integral.`,
             thinking: "Evaluando salud financiera de proveedores... Verificando listas de sanciones (OFAC, EU)... Analizando riesgos geopolíticos y de cadena de suministro..."
           }, 1500);
+
+          addLog({
+            type: 'AI_THOUGHT',
+            module: 'Risk Agent',
+            message: 'Risk Assessment & Supplier Selection',
+            details: {
+              analysis: 'Multi-factor weighted scoring',
+              factors: {
+                price: 0.4,
+                delivery: 0.2,
+                risk: 0.2,
+                quality: 0.2
+              },
+              winner: bestSupplier.name,
+              riskChecks: {
+                financialHealth: 'Stable (D&B Score 85)',
+                geopolitical: 'Low Risk',
+                sanctions: 'Clean (OFAC, EU, UN lists)'
+              }
+            }
+          });
           setSimulationStep(2);
           break;
 
@@ -220,6 +296,18 @@ export const SourcingEvent: React.FC = () => {
           const startPrice = event.targetPrice * 1.15;
           const round1Price = event.targetPrice * 1.05;
           const finalNegPrice = event.targetPrice * 0.95;
+
+          addLog({
+            type: 'AI_THOUGHT',
+            module: 'Sourcing Agent',
+            message: 'Negotiation Strategy Configured',
+            details: {
+              strategy: 'Volume Aggregation Leverage',
+              zopa: { min: event.targetPrice * 0.9, max: event.targetPrice * 1.1 },
+              supplier: supplier.name,
+              historicalVolume: 'High'
+            }
+          });
 
           await addMessage({
             sender: 'sourcing',
@@ -258,6 +346,18 @@ export const SourcingEvent: React.FC = () => {
               ]
             }
           }, 2000);
+          addLog({
+            type: 'TRANSACTION',
+            module: 'Sourcing Agent',
+            message: 'Negotiation Concluded',
+            details: {
+              rounds: 3,
+              startingBid: startPrice,
+              finalAgreedPrice: finalNegPrice,
+              totalSavings: (startPrice - finalNegPrice) * event.volume,
+              outcome: 'SUCCESS'
+            }
+          });
           setSimulationStep(3);
           break;
 
@@ -289,6 +389,19 @@ export const SourcingEvent: React.FC = () => {
               ]
             }
           }, 2000);
+
+          addLog({
+            type: 'USER_ACTION',
+            module: 'Legal Agent',
+            message: 'Compliance Verification',
+            details: {
+              checks: [
+                { id: 'CHK-001', type: 'Legal Terms', status: 'PASS', hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855' },
+                { id: 'CHK-002', type: 'SLA', status: 'PASS', hash: 'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e' },
+                { id: 'CHK-003', type: 'Financial Compliance', status: 'PASS', hash: '8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92' }
+              ]
+            }
+          });
 
           const poNum = Math.floor(100000 + Math.random() * 900000);
           await addMessage({
@@ -428,7 +541,8 @@ export const SourcingEvent: React.FC = () => {
             {messages.map((msg) => (
               <div key={msg.id} className={`flex flex-col max-w-[90%] ${msg.sender === 'sourcing' || msg.sender === 'erp' ? 'ml-auto items-end' : 'mr-auto items-start'}`}>
                 <div className="flex items-center text-xs font-bold text-gray-500 mb-1 px-1">
-                  {msg.sender === 'risk' && <AlertTriangle className="w-3 h-3 mr-1 text-red-500" />}
+                  {msg.sender === 'risk' && msg.senderName !== 'Ingeniería / I+D' && <AlertTriangle className="w-3 h-3 mr-1 text-red-500" />}
+                  {msg.senderName === 'Ingeniería / I+D' && <Wrench className="w-3 h-3 mr-1 text-orange-500" />}
                   {msg.sender === 'erp' && <Database className="w-3 h-3 mr-1 text-green-600" />}
                   {msg.sender === 'legal' && <Gavel className="w-3 h-3 mr-1 text-purple-600" />}
                   {msg.sender === 'procure' && <Monitor className="w-3 h-3 mr-1 text-blue-600" />}
@@ -437,7 +551,8 @@ export const SourcingEvent: React.FC = () => {
                 <div className={`p-3 rounded-2xl text-sm shadow-sm ${msg.sender === 'procure' ? 'bg-blue-50 text-blue-900 border border-blue-100 rounded-tl-none' :
                   msg.sender === 'risk' ? 'bg-red-50 text-red-900 border border-red-100 rounded-tl-none' :
                     msg.sender === 'erp' ? 'bg-green-50 text-green-900 border border-green-100 rounded-tr-none' :
-                      'bg-white text-gray-800 border border-gray-200 rounded-tr-none'
+                      msg.senderName === 'Ingeniería / I+D' ? 'bg-orange-50 text-orange-900 border border-orange-100 rounded-tl-none' :
+                        'bg-white text-gray-800 border border-gray-200 rounded-tr-none'
                   }`}>
                   {msg.thinking && (
                     <div className="mb-3 pb-3 border-b border-gray-200/50">
@@ -486,7 +601,7 @@ export const SourcingEvent: React.FC = () => {
 
         {/* Results Panel */}
         {simulationComplete && event.finalSupplier && (
-          <div className="w-80 bg-white rounded-xl border border-gray-200 shadow-sm p-6 animate-fade-in flex flex-col">
+          <div className="w-80 bg-white rounded-xl border border-gray-200 shadow-sm p-6 animate-fade-in flex flex-col overflow-y-auto max-h-full">
             <div className="text-center mb-6">
               <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <CheckCheck className="w-8 h-8" />
@@ -512,6 +627,30 @@ export const SourcingEvent: React.FC = () => {
                 <span className="text-gray-500">Número OC</span>
                 <span className="font-mono bg-gray-100 px-2 rounded text-right">{event.poNumber}</span>
               </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Descripción</span>
+                <span className="font-semibold text-gray-900 text-right">{event.title}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Condiciones</span>
+                <span className="font-semibold text-gray-900 text-right">{event.volume} {event.unit && !event.volume.includes(event.unit.split('/')[1]) ? event.unit : ''}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Fecha de Emisión</span>
+                <span className="font-semibold text-gray-900 text-right">{new Date().toLocaleDateString()}</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Condición de Pago</span>
+                <span className="font-semibold text-gray-900 text-right">Net 60</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Dirección de Entrega</span>
+                <span className="font-semibold text-gray-900 text-right">Almacén Central - Dock 4</span>
+              </div>
+              <div className="flex justify-between py-2 border-b border-gray-100">
+                <span className="text-gray-500">Solicitante</span>
+                <span className="font-semibold text-gray-900 text-right">ProcureAI Auto-Sourcing</span>
+              </div>
             </div>
 
             <button
@@ -525,15 +664,17 @@ export const SourcingEvent: React.FC = () => {
       </div>
 
       {/* Floating Action Button */}
-      {isSimulating && !isStepLoading && !simulationComplete && (
-        <button
-          onClick={executeNextStep}
-          className="fixed bottom-8 right-8 z-50 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg font-bold flex items-center transition-all hover:scale-105 animate-bounce"
-        >
-          <Play className="w-5 h-5 mr-2" /> Continuar Siguiente Paso
-        </button>
-      )}
-    </div>
+      {
+        isSimulating && !isStepLoading && !simulationComplete && (
+          <button
+            onClick={executeNextStep}
+            className="fixed bottom-8 left-8 z-50 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-full shadow-lg font-bold flex items-center transition-all hover:scale-105 animate-bounce"
+          >
+            <Play className="w-5 h-5 mr-2" /> Continuar Siguiente Paso
+          </button>
+        )
+      }
+    </div >
   );
 };
 
