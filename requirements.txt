@@ -1,0 +1,10 @@
+# Dependencias de ProcureAI
+# Este proyecto utiliza Node.js/Vite.
+# Se mantienen las dependencias en package.json.
+# Se añade este archivo por cumplimiento de requerimiento QA.
+react
+react-dom
+recharts
+lucide-react
+typescript
+vite
